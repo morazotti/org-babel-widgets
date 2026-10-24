@@ -10,7 +10,7 @@ Drag the sliders with the mouse, or use =C-<left>=/=C-<right>= on a widget line,
 #+WIDGET: style choice :options ("-" "--" ":") :label "estilo"
 #+WIDGET: noise button :label "novo ruído"
 
-#+begin_src python :session cw-demo :results value file graphics :file demo-plot.png :var amp=(cw-value "amp") :var freq=(cw-value "freq") :var grid=(cw-value "grid") :var style=(cw-value "style") :var seed=(cw-value "noise")
+#+begin_src python :session org-babel-widgets-demo :results value file graphics :file demo-plot.png :var amp=(org-babel-widgets-value "amp") :var freq=(org-babel-widgets-value "freq") :var grid=(org-babel-widgets-value "grid") :var style=(org-babel-widgets-value "style") :var seed=(org-babel-widgets-value "noise")
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt, numpy as np
 rng = np.random.default_rng(seed)

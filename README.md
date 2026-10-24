@@ -12,7 +12,7 @@ Declare a widget on a line of your Org buffer:
 Read its value from any source block with `:var`:
 
 ```org
-#+begin_src jupyter-python :var amp=(cw-value "amp")
+#+begin_src jupyter-python :var amp=(org-babel-widgets-value "amp")
 ...
 #+end_src
 ```
@@ -31,7 +31,7 @@ matplotlib figures, are refreshed inline.
   buffer order; an error in one block does not stop the others).
 - Pure Emacs Lisp: a small anti-aliased rasterizer over the `canvas` pixel
   buffer. No C module.
-- Colors follow the theme through three faces: `cw-track`, `cw-accent`, `cw-knob`.
+- Colors follow the theme through three faces: `org-babel-widgets-track`, `org-babel-widgets-accent`, `org-babel-widgets-knob`.
 
 ## Requirements
 
@@ -64,7 +64,7 @@ Or enable it by hand in an Org buffer with `M-x org-babel-widgets-mode`.
 #+WIDGET: NAME TYPE [:option value ...]
 ```
 
-| Type     | Options                                                  | `cw-value` returns        |
+| Type     | Options                                                  | `org-babel-widgets-value` returns        |
 |----------|----------------------------------------------------------|---------------------------|
 | `slider` | `:min` (0) `:max` (1) `:step` (0.01) `:value` `:continuous` | number                  |
 | `toggle` | `:value` (nil)                                           | `1` or `0`                |
@@ -78,7 +78,7 @@ slider width in pixels and the displayed value has 4 significant digits. `:step`
 then only sets how far the arrow keys move (default: 1/100 of the range).
 
 Invalid declarations show the error in red in place of the widget, for example
-`cw: :min must be less than :max`. Edited `#+WIDGET:` lines are re-read after
+`Widget error: :min must be less than :max`. Edited `#+WIDGET:` lines are re-read after
 0.3 s of idle time.
 
 ### Using values in blocks
@@ -86,12 +86,12 @@ Invalid declarations show the error in red in place of the widget, for example
 ```org
 #+WIDGET: n slider :min 0 :max 20 :step 1 :value 5 :label "n"
 
-#+begin_src emacs-lisp :var n=(cw-value "n")
+#+begin_src emacs-lisp :var n=(org-babel-widgets-value "n")
 (* n n)
 #+end_src
 ```
 
-The reference `(cw-value "name")` must be on the `#+begin_src` line itself
+The reference `(org-babel-widgets-value "name")` must be on the `#+begin_src` line itself
 (not on a `#+HEADER:` line) for the block to be re-run when the widget changes.
 Do not use `t` as a variable name in Emacs Lisp blocks.
 
@@ -107,13 +107,13 @@ Do not use `t` as a variable name in Emacs Lisp blocks.
 
 ### Lisp API
 
-- `(cw-value NAME)`: current value of widget `NAME` in the current buffer.
-- `(cw-set NAME VALUE)`: set a widget programmatically (sliders snap to their
+- `(org-babel-widgets-value NAME)`: current value of widget `NAME` in the current buffer.
+- `(org-babel-widgets-set NAME VALUE)`: set a widget programmatically (sliders snap to their
   step, toggles treat `nil` and `0` as off, buttons count a click); redraws and
   schedules dependent blocks.
 
-Customization (group `org-babel-widgets`): `cw-height` (20), `cw-slider-width`
-(200), `cw-debounce` (0.12 s between the last change and re-execution).
+Customization (group `org-babel-widgets`): `org-babel-widgets-height` (20), `org-babel-widgets-slider-width`
+(200), `org-babel-widgets-debounce` (0.12 s between the last change and re-execution).
 
 ## Example: live matplotlib plot
 
@@ -121,7 +121,7 @@ Customization (group `org-babel-widgets`): `cw-height` (20), `cw-slider-width`
 #+WIDGET: amp slider :min 0 :max 5 :step 0.1 :value 1 :label "amplitude"
 #+WIDGET: freq slider :min 1 :max 10 :step 1 :value 3 :label "frequency"
 
-#+begin_src jupyter-python :session demo :kernel my-kernel :file plot.png :var amp=(cw-value "amp") :var freq=(cw-value "freq")
+#+begin_src jupyter-python :session demo :kernel my-kernel :file plot.png :var amp=(org-babel-widgets-value "amp") :var freq=(org-babel-widgets-value "freq")
 import matplotlib.pyplot as plt, numpy as np
 x = np.linspace(0, 2*np.pi, 400)
 fig, ax = plt.subplots(figsize=(6, 3))
@@ -155,7 +155,7 @@ walkthrough with `emacs-lisp` and `jupyter-python` blocks).
 - Widget values live in the session; they are not written to the file
   (`:value` is only the initial value).
 - Synchronous blocks block the UI while they run. Use `:session`, a larger
-  `cw-debounce`, or cheaper blocks for continuous sliders.
+  `org-babel-widgets-debounce`, or cheaper blocks for continuous sliders.
 - Widgets contain no text: labels and values are ordinary buffer text next to
   the canvas.
 - Asynchronous blocks (`:async yes`) return immediately and are only protected
@@ -169,6 +169,12 @@ emacs -Q --batch -L . -l test/org-babel-widgets-test.el -f ert-run-tests-batch-a
 
 ## Files
 
-- `org-babel-widgets.el`: the library (prefix `cw-`).
+- `org-babel-widgets.el`: the library (prefix `org-babel-widgets-`).
 - `test/org-babel-widgets-test.el`: ERT tests.
 - `examples/demo.org`, `teste.org`: example documents.
+- `LICENSE`: GNU GPL version 2.
+
+## License
+
+GNU General Public License, version 2 or (at your option) any later version.
+See [LICENSE](LICENSE).
