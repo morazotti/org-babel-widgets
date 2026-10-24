@@ -1,6 +1,6 @@
-#+TITLE: canvas-widgets demo
+#+TITLE: org-babel-widgets demo
 
-Load the library, then enable the mode in this buffer (=M-x canvas-widgets-mode=).
+Load the library, then enable the mode in this buffer (=M-x org-babel-widgets-mode=).
 Drag the sliders with the mouse, or use =C-<left>=/=C-<right>= on a widget line,
 =C-c C-c= on a button/toggle/choice line.
 

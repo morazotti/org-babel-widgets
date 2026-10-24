@@ -1,4 +1,4 @@
-;;; canvas-widgets.el --- Interactive canvas widgets driving Org Babel blocks  -*- lexical-binding: t; -*-
+;;; org-babel-widgets.el --- Interactive canvas widgets driving Org Babel blocks  -*- lexical-binding: t; -*-
 
 ;; Package-Requires: ((emacs "32.0"))
 
@@ -26,7 +26,7 @@
 (require 'org)
 (require 'ob-core)
 
-(defgroup canvas-widgets nil
+(defgroup org-babel-widgets nil
   "Interactive canvas widgets for Org Babel."
   :group 'org-babel
   :prefix "cw-")
@@ -47,19 +47,19 @@
   '((((background dark)) :background "#555a66")
     (t :background "#c4c8d0"))
   "Background color of unfilled widget parts."
-  :group 'canvas-widgets)
+  :group 'org-babel-widgets)
 
 (defface cw-accent
   '((((background dark)) :background "#6ea8fe")
     (t :background "#2f6fe0"))
   "Background color of active widget parts."
-  :group 'canvas-widgets)
+  :group 'org-babel-widgets)
 
 (defface cw-knob
   '((((background dark)) :background "#f0f2f5")
     (t :background "#ffffff"))
   "Background color of knobs and glyphs."
-  :group 'canvas-widgets)
+  :group 'org-babel-widgets)
 
 ;;;; Rasterizer
 
@@ -204,7 +204,7 @@ Top-left corner (X, Y), size WIDTH x HEIGHT, corner radius R."
 (defvar-local cw--rescan-timer nil
   "Idle timer scheduled by `cw--after-change'.")
 
-(defvar canvas-widgets-mode)
+(defvar org-babel-widgets-mode)
 
 (defconst cw--types '(slider button toggle choice))
 
@@ -499,11 +499,11 @@ Return the new `cw-value'."
              table)))
 
 (defun cw--rescan-in (buffer)
-  "Run `cw--rescan' in BUFFER if it is live and `canvas-widgets-mode' is on."
+  "Run `cw--rescan' in BUFFER if it is live and `org-babel-widgets-mode' is on."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq cw--rescan-timer nil)
-      (when canvas-widgets-mode (cw--rescan)))))
+      (when org-babel-widgets-mode (cw--rescan)))))
 
 (defun cw--after-change (&rest _)
   "Schedule a rescan of widget declarations after buffer edits."
@@ -512,21 +512,21 @@ Return the new `cw-value'."
         (run-with-idle-timer 0.3 nil #'cw--rescan-in (current-buffer))))
 
 (defun cw--redraw-all (&rest _)
-  "Repaint every widget in every buffer using `canvas-widgets-mode'."
+  "Repaint every widget in every buffer using `org-babel-widgets-mode'."
   (dolist (buf (buffer-list))
     (with-current-buffer buf
-      (when (and canvas-widgets-mode cw--widgets)
+      (when (and org-babel-widgets-mode cw--widgets)
         (maphash (lambda (_ w) (cw--redraw w)) cw--widgets)))))
 
 ;;;###autoload
-(define-minor-mode canvas-widgets-mode
+(define-minor-mode org-babel-widgets-mode
   "Display `#+WIDGET:' declarations as interactive canvas widgets."
   :lighter " CW"
-  (if canvas-widgets-mode
+  (if org-babel-widgets-mode
       (progn
         (unless (display-graphic-p)
-          (setq canvas-widgets-mode nil)
-          (user-error "canvas-widgets requires a graphical Emacs"))
+          (setq org-babel-widgets-mode nil)
+          (user-error "org-babel-widgets requires a graphical Emacs"))
         (cw--table)
         (cw--rescan)
         (add-hook 'after-change-functions #'cw--after-change nil t)
@@ -665,6 +665,6 @@ Markers are in buffer order and must be released by the caller."
             (dolist (m markers) (set-marker m nil)))
           (when cw--pending (cw--arm)))))))
 
-(provide 'canvas-widgets)
+(provide 'org-babel-widgets)
 
-;;; canvas-widgets.el ends here
+;;; org-babel-widgets.el ends here

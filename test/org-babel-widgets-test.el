@@ -1,8 +1,8 @@
-;;; canvas-widgets-test.el --- Tests for canvas-widgets  -*- lexical-binding: t; -*-
+;;; org-babel-widgets-test.el --- Tests for org-babel-widgets  -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'cl-lib)
-(require 'canvas-widgets)
+(require 'org-babel-widgets)
 
 (defmacro cw-test-with-org (text &rest body)
   "Run BODY in an Org buffer containing TEXT with widgets scanned."
@@ -225,7 +225,6 @@
         (should-not cw--running)
         (should (string-match-p "3 | 0" (cw-test--result-after 3)))))))
 
-;;; canvas-widgets-test.el ends here
 
 (ert-deftest cw-test-continuous-slider-does-not-snap ()
   (let ((w (cw--parse-line "c" "slider" ":min 0 :max 1 :continuous t :step 1")))
@@ -237,3 +236,4 @@
     (should (equal "0.1234" (progn (setf (cw-widget-value w) 0.1234) (cw--value-text w)))))
   (let ((w (cw--parse-line "d" "slider" ":min 0 :max 10 :continuous t")))
     (should (= 0.1 (cw-widget-step w)))))
+;;; org-babel-widgets-test.el ends here

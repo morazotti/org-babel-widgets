@@ -47,14 +47,14 @@ matplotlib figures, are refreshed inline.
 Clone the repository and load the library:
 
 ```elisp
-(use-package canvas-widgets
+(use-package org-babel-widgets
   :load-path "~/path/to/org-babel-widgets"
   :hook (org-mode . (lambda ()
                       (when (display-graphic-p)
-                        (canvas-widgets-mode 1)))))
+                        (org-babel-widgets-mode 1)))))
 ```
 
-Or enable it by hand in an Org buffer with `M-x canvas-widgets-mode`.
+Or enable it by hand in an Org buffer with `M-x org-babel-widgets-mode`.
 
 ## Usage
 
@@ -112,7 +112,7 @@ Do not use `t` as a variable name in Emacs Lisp blocks.
   step, toggles treat `nil` and `0` as off, buttons count a click); redraws and
   schedules dependent blocks.
 
-Customization (group `canvas-widgets`): `cw-height` (20), `cw-slider-width`
+Customization (group `org-babel-widgets`): `cw-height` (20), `cw-slider-width`
 (200), `cw-debounce` (0.12 s between the last change and re-execution).
 
 ## Example: live matplotlib plot
@@ -164,11 +164,11 @@ walkthrough with `emacs-lisp` and `jupyter-python` blocks).
 ## Tests
 
 ```sh
-emacs -Q --batch -L . -l test/canvas-widgets-test.el -f ert-run-tests-batch-and-exit
+emacs -Q --batch -L . -l test/org-babel-widgets-test.el -f ert-run-tests-batch-and-exit
 ```
 
 ## Files
 
-- `canvas-widgets.el`: the library (prefix `cw-`).
-- `test/canvas-widgets-test.el`: ERT tests.
+- `org-babel-widgets.el`: the library (prefix `cw-`).
+- `test/org-babel-widgets-test.el`: ERT tests.
 - `examples/demo.org`, `teste.org`: example documents.
