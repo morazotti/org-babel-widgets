@@ -283,7 +283,7 @@ Signal `user-error' with a \"cw: \" message on invalid input."
            (value (plist-get plist :value)))
       (pcase sym
         ('slider
-         (let ((mn (if (plist-member plist :min) (plist-get plist :min) 0))
+         (let* ((mn (if (plist-member plist :min) (plist-get plist :min) 0))
                (mx (if (plist-member plist :max) (plist-get plist :max) 1))
                (st (cond ((plist-member plist :step) (plist-get plist :step))
                          ((plist-get plist :continuous)

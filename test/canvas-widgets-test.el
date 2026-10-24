@@ -226,3 +226,14 @@
         (should (string-match-p "3 | 0" (cw-test--result-after 3)))))))
 
 ;;; canvas-widgets-test.el ends here
+
+(ert-deftest cw-test-continuous-slider-does-not-snap ()
+  (let ((w (cw--parse-line "c" "slider" ":min 0 :max 1 :continuous t :step 1")))
+    (should (= 0.1234 (cw--snap w 0.1234)))
+    (should (= 1 (cw--snap w 7)))
+    (let ((px (cw--x->value w 77)))
+      (should (floatp px))
+      (should-not (= px (* 0.01 (round (* 100 px))))))
+    (should (equal "0.1234" (progn (setf (cw-widget-value w) 0.1234) (cw--value-text w)))))
+  (let ((w (cw--parse-line "d" "slider" ":min 0 :max 10 :continuous t")))
+    (should (= 0.1 (cw-widget-step w)))))
