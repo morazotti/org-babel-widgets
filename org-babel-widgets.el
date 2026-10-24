@@ -1,9 +1,9 @@
 ;;; org-babel-widgets.el --- Interactive canvas widgets for Org Babel  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 morazotti
+;; Copyright (C) 2026 Nícolas André da Costa Morazotti
 
-;; Author: morazotti <nicolas.morazotti@gmail.com>
-;; Maintainer: morazotti <nicolas.morazotti@gmail.com>
+;; Author: Nícolas André da Costa Morazotti <nicolas.morazotti@gmail.com>
+;; Maintainer: Nícolas André da Costa Morazotti <nicolas.morazotti@gmail.com>
 ;; URL: https://github.com/morazotti/org-babel-widgets
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "32.0") (org "9.8"))

@@ -1,6 +1,6 @@
 ;;; org-babel-widgets-test.el --- Tests for org-babel-widgets  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 morazotti
+;; Copyright (C) 2026 Nícolas André da Costa Morazotti
 
 ;; SPDX-License-Identifier: GPL-2.0-or-later
 
