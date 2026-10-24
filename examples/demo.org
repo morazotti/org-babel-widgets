@@ -1,0 +1,23 @@
+#+TITLE: canvas-widgets demo
+
+Load the library, then enable the mode in this buffer (=M-x canvas-widgets-mode=).
+Drag the sliders with the mouse, or use =C-<left>=/=C-<right>= on a widget line,
+=C-c C-c= on a button/toggle/choice line.
+
+#+WIDGET: amp slider :min 0 :max 5 :step 0.1 :value 1 :label "amplitude"
+#+WIDGET: freq slider :min 1 :max 10 :step 1 :value 3 :label "frequência"
+#+WIDGET: grid toggle :value t :label "grade"
+#+WIDGET: style choice :options ("-" "--" ":") :label "estilo"
+#+WIDGET: noise button :label "novo ruído"
+
+#+begin_src python :session cw-demo :results value file graphics :file demo-plot.png :var amp=(cw-value "amp") :var freq=(cw-value "freq") :var grid=(cw-value "grid") :var style=(cw-value "style") :var seed=(cw-value "noise")
+import matplotlib; matplotlib.use("Agg")
+import matplotlib.pyplot as plt, numpy as np
+rng = np.random.default_rng(seed)
+x = np.linspace(0, 2*np.pi, 400)
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(x, amp*np.sin(freq*x) + 0.05*rng.standard_normal(x.size), style)
+ax.set_ylim(-5.5, 5.5); ax.grid(bool(grid))
+plt.close(fig)
+fig
+#+end_src
