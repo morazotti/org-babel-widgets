@@ -105,6 +105,30 @@ Do not use `t` as a variable name in Emacs Lisp blocks.
 | `C-S-<left>` / `C-S-<right>`               | Ten steps (slider only)                                        |
 | `C-c C-c` on the widget line               | Click/flip; prompts for a number (slider) or option (choice)   |
 
+### Widget builder
+
+Two commands write the declarations for you, so you do not have to remember
+the syntax:
+
+- `M-x org-babel-widgets-insert-widget`: asks for the type, a name (rejected if
+  empty, containing spaces or double quotes, or already declared in the buffer),
+  an optional label and the options of that type (slider: minimum, maximum,
+  continuous or step, initial value; toggle: initial state; choice:
+  comma-separated options and initial one). It inserts the `#+WIDGET:` line on a
+  new line below point. Invalid combinations, such as a minimum above the
+  maximum, are reported and the options are asked again.
+- `M-x org-babel-widgets-insert-var`: with point inside a source block, pick a
+  declared widget and a variable name; it appends
+  `:var NAME=(org-babel-widgets-value "widget")` to the `#+begin_src` line.
+
+Neither command has a key binding by default. For example:
+
+```elisp
+(with-eval-after-load 'org
+  (keymap-set org-mode-map "C-c w w" #'org-babel-widgets-insert-widget)
+  (keymap-set org-mode-map "C-c w v" #'org-babel-widgets-insert-var))
+```
+
 ### Lisp API
 
 - `(org-babel-widgets-value NAME)`: current value of widget `NAME` in the current buffer.

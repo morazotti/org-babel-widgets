@@ -694,6 +694,126 @@ Markers are in buffer order and must be released by the caller."
             (dolist (m markers) (set-marker m nil)))
           (when org-babel-widgets--pending (org-babel-widgets--arm)))))))
 
+;;;; Builder
+
+(defun org-babel-widgets--options-string (options)
+  "Return the plist OPTIONS as the text that follows the type in a declaration."
+  (cl-loop for (k v) on options by #'cddr
+           concat (format " %s %s" k (prin1-to-string v))))
+
+(defun org-babel-widgets--format-line (name type options)
+  "Return the #+WIDGET: declaration for NAME, TYPE (a symbol) and plist OPTIONS."
+  (format "#+WIDGET: %s %s%s" name type (org-babel-widgets--options-string options)))
+
+(defun org-babel-widgets--pause (format-string &rest args)
+  "Show a message built from FORMAT-STRING and ARGS, then wait briefly."
+  (message "%s" (apply #'format format-string args))
+  (sit-for 1.5))
+
+(defun org-babel-widgets--read-name ()
+  "Prompt for a widget name that is valid and not yet declared in the buffer."
+  (let ((taken (mapcar #'car (org-babel-widgets--scan-lines)))
+        name)
+    (while (not name)
+      (let ((s (string-trim (read-string "Widget name: "))))
+        (cond ((not (string-match-p "\\`[^[:space:]\"]+\\'" s))
+               (org-babel-widgets--pause
+                "Name must be non-empty, without spaces or double quotes"))
+              ((member s taken)
+               (org-babel-widgets--pause "A widget named %S already exists" s))
+              (t (setq name s)))))
+    name))
+
+(defun org-babel-widgets--read-options (type)
+  "Prompt for the options specific to widget TYPE and return them as a plist."
+  (pcase type
+    ('slider
+     (let* ((mn (read-number "Minimum: " 0))
+            (mx (read-number "Maximum: " 1))
+            (continuous (y-or-n-p "Continuous (no snapping to a step)? "))
+            (step (unless continuous
+                    (read-number "Step: " (if (and (integerp mn) (integerp mx))
+                                              1
+                                            0.01))))
+            (value (read-number "Initial value: " mn)))
+       (append (list :min mn :max mx)
+               (if continuous (list :continuous t) (list :step step))
+               (list :value value))))
+    ('toggle (when (y-or-n-p "Initially on? ") (list :value t)))
+    ('choice
+     (let* ((opts (split-string (read-string "Options (comma-separated): ")
+                                "," t "[ \t]+"))
+            (value (and (cdr opts)
+                        (completing-read "Initial option: " opts nil t
+                                         nil nil (car opts)))))
+       (unless opts (user-error "Widget error: choice needs at least one option"))
+       (append (list :options opts)
+               (and value (not (equal value (car opts))) (list :value value)))))
+    (_ nil)))
+
+(defun org-babel-widgets--insert-line (line)
+  "Insert the declaration LINE on its own line and rescan.
+On a non-blank line, LINE goes on a new line below it.  On a blank line,
+LINE is inserted before it, so the blank line is kept."
+  (when (org-in-src-block-p)
+    (user-error "Cannot insert a widget inside a source block"))
+  (if (and (bolp) (eolp))
+      (insert line "\n")
+    (end-of-line)
+    (insert "\n" line))
+  (when org-babel-widgets-mode (org-babel-widgets--rescan)))
+
+;;;###autoload
+(defun org-babel-widgets-insert-widget ()
+  "Interactively build a #+WIDGET: declaration and insert it below point.
+Prompt for the type, name, label and type-specific options.  Invalid
+combinations (for example a minimum above the maximum) are reported and the
+options are asked again."
+  (interactive)
+  (let* ((type (intern (completing-read
+                        "Widget type: "
+                        (mapcar #'symbol-name org-babel-widgets--types) nil t)))
+         (name (org-babel-widgets--read-name))
+         (label (string-trim (read-string "Label (empty to use the name): ")))
+         line)
+    (while (not line)
+      (condition-case err
+          (let ((options (append (org-babel-widgets--read-options type)
+                                 (unless (string-empty-p label)
+                                   (list :label label)))))
+            (org-babel-widgets--parse-line
+             name (symbol-name type) (org-babel-widgets--options-string options))
+            (setq line (org-babel-widgets--format-line name type options)))
+        (user-error (org-babel-widgets--pause "%s" (error-message-string err)))))
+    (org-babel-widgets--insert-line line)))
+
+(defun org-babel-widgets--add-var (name var)
+  "Append `:var VAR=(org-babel-widgets-value NAME)' to the source block at point."
+  (let ((block (org-element-lineage (org-element-at-point) '(src-block) t))
+        (ref (format "(org-babel-widgets-value %S)" name)))
+    (unless block (user-error "Point is not inside a source block"))
+    (save-excursion
+      (goto-char (org-element-property :post-affiliated block))
+      (end-of-line)
+      (when (string-search ref (buffer-substring (line-beginning-position) (point)))
+        (user-error "This block already references widget %S" name))
+      (insert (format " :var %s=%s" var ref)))))
+
+;;;###autoload
+(defun org-babel-widgets-insert-var (name var)
+  "Add a `:var' for widget NAME to the header of the source block at point.
+VAR is the variable name the block sees; it defaults to NAME with characters
+that are invalid in identifiers replaced by underscores."
+  (interactive
+   (let* ((names (or (mapcar #'car (org-babel-widgets--scan-lines))
+                     (user-error "No widgets declared in this buffer")))
+          (name (completing-read "Widget: " names nil t))
+          (default (let ((s (replace-regexp-in-string "[^[:alnum:]_]" "_" name)))
+                     (if (string-match-p "\\`[0-9]" s) (concat "w_" s) s))))
+     (list name (read-string (format-prompt "Variable name" default)
+                             nil nil default))))
+  (org-babel-widgets--add-var name var))
+
 (provide 'org-babel-widgets)
 
 ;;; org-babel-widgets.el ends here

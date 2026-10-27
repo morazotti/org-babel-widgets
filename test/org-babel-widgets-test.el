@@ -254,4 +254,78 @@
     (should (equal "0.1234" (progn (setf (org-babel-widgets-widget-value w) 0.1234) (org-babel-widgets--value-text w)))))
   (let ((w (org-babel-widgets--parse-line "d" "slider" ":min 0 :max 10 :continuous t")))
     (should (= 0.1 (org-babel-widgets-widget-step w)))))
+
+;;;; Builder
+
+(ert-deftest org-babel-widgets-test-format-line-round-trips ()
+  (dolist (c '(("a" slider (:min 0 :max 5 :step 0.5 :value 1 :label "amp"))
+               ("b" slider (:min 0 :max 1 :continuous t :value 0.25))
+               ("c" toggle (:value t))
+               ("d" button nil)
+               ("e" choice (:options ("x" "y z") :value "y z" :label "pick"))))
+    (pcase-let* ((`(,name ,type ,opts) c)
+                 (line (org-babel-widgets--format-line name type opts)))
+      (should (string-match org-babel-widgets--line-re line))
+      (let ((w (org-babel-widgets--parse-line
+                (match-string 1 line) (match-string 2 line) (match-string 3 line))))
+        (should (eq type (org-babel-widgets-widget-type w)))
+        (when (plist-get opts :label)
+          (should (equal (plist-get opts :label) (org-babel-widgets-widget-label w))))))))
+
+(ert-deftest org-babel-widgets-test-insert-line-placement ()
+  (org-babel-widgets-test-with-org "* Head\ntext\n\nafter\n"
+    (goto-char (point-min))
+    (org-babel-widgets--insert-line "#+WIDGET: a toggle")
+    (should (equal "* Head\n#+WIDGET: a toggle\ntext\n\nafter\n" (buffer-string)))
+    (goto-char (point-min))
+    (search-forward "text\n")
+    (org-babel-widgets--insert-line "#+WIDGET: b button")
+    (should (equal "* Head\n#+WIDGET: a toggle\ntext\n#+WIDGET: b button\n\nafter\n"
+                   (buffer-string)))
+    (should-error (progn (insert "#+begin_src emacs-lisp\n1\n#+end_src\n")
+                         (search-backward "1")
+                         (org-babel-widgets--insert-line "#+WIDGET: c button"))
+                  :type 'user-error)))
+
+(ert-deftest org-babel-widgets-test-add-var ()
+  (org-babel-widgets-test-with-org
+      "#+WIDGET: a slider :min 0 :max 3 :step 1\n\n#+begin_src emacs-lisp :results value\n(* 2 a)\n#+end_src\n"
+    (goto-char (point-min))
+    (search-forward "(* 2 a)")
+    (org-babel-widgets--add-var "a" "a")
+    (should (string-match-p
+             "^#\\+begin_src emacs-lisp :results value :var a=(org-babel-widgets-value \"a\")$"
+             (buffer-string)))
+    (let ((ms (org-babel-widgets--dependent-blocks '("a"))))
+      (unwind-protect (should (= 1 (length ms)))
+        (mapc (lambda (m) (set-marker m nil)) ms)))
+    (should-error (org-babel-widgets--add-var "a" "a") :type 'user-error)
+    (goto-char (point-min))
+    (should-error (org-babel-widgets--add-var "a" "b") :type 'user-error)))
+
+(ert-deftest org-babel-widgets-test-insert-widget-command-retries-invalid-options ()
+  (org-babel-widgets-test-with-org "intro\n"
+    (let ((numbers '(5 1 1 5 0 5 1 2)))  ; invalid: min 5 max 1; then min 0 max 5 step 1 value 2
+      (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "slider"))
+                ((symbol-function 'read-string)
+                 (lambda (prompt &rest _)
+                   (if (string-prefix-p "Widget name" prompt) "amp" "Amplitude")))
+                ((symbol-function 'read-number)
+                 (lambda (&rest _) (or (pop numbers) (error "Out of numbers"))))
+                ((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
+                ((symbol-function 'sit-for) #'ignore))
+        (goto-char (point-min))
+        (call-interactively #'org-babel-widgets-insert-widget)))
+    (should (equal "intro\n#+WIDGET: amp slider :min 0 :max 5 :step 1 :value 2 :label \"Amplitude\"\n"
+                   (buffer-string)))
+    (should (= 2 (progn (org-babel-widgets--rescan) (org-babel-widgets-value "amp"))))))
+
+(ert-deftest org-babel-widgets-test-read-name-rejects-duplicates-and-bad-names ()
+  (org-babel-widgets-test-with-org "#+WIDGET: a toggle\n"
+    (let ((inputs '("a" "has space" "b\"q" "" "ok")))
+      (cl-letf (((symbol-function 'read-string) (lambda (&rest _) (pop inputs)))
+                ((symbol-function 'sit-for) #'ignore))
+        (should (equal "ok" (org-babel-widgets--read-name)))
+        (should-not inputs)))))
+
 ;;; org-babel-widgets-test.el ends here
