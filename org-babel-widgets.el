@@ -286,6 +286,42 @@ PRESSED draws the knob in its pressed state."
     (create-image (make-vector (* width org-babel-widgets-height) 0) 'canvas t
                   :data-width width :data-height org-babel-widgets-height)))
 
+(defconst org-babel-widgets--eval-functions
+  '(+ - * / % mod 1+ 1- abs min max expt sqrt exp log sin cos tan asin acos atan
+    float round floor ceiling truncate)
+  "Functions allowed in numeric widget options such as `:max (* 2 pi)'.")
+
+(defconst org-babel-widgets--eval-constants
+  `((pi . ,float-pi) (float-pi . ,float-pi) (e . ,float-e) (float-e . ,float-e))
+  "Symbols allowed in numeric widget options, with their values.")
+
+(defun org-babel-widgets--eval-number (form)
+  "Evaluate the numeric expression FORM without calling `eval'.
+FORM is a number, a symbol from `org-babel-widgets--eval-constants' or a
+call to a function in `org-babel-widgets--eval-functions' on such forms.
+Anything else signals a `user-error', so that opening an Org file never runs
+arbitrary code."
+  (cond
+   ((numberp form) form)
+   ((and (symbolp form) (assq form org-babel-widgets--eval-constants))
+    (cdr (assq form org-babel-widgets--eval-constants)))
+   ((and (consp form) (proper-list-p form)
+         (memq (car form) org-babel-widgets--eval-functions))
+    (let ((args (mapcar #'org-babel-widgets--eval-number (cdr form))))
+      (let ((result (condition-case nil
+                        (apply (car form) args)
+                      (error (user-error "Widget error: cannot evaluate %S" form)))))
+        (unless (and (numberp result) (= result result) (< (abs result) 1.0e+INF))
+          (user-error "Widget error: %S is not a finite number" form))
+        result)))
+   (t (user-error "Widget error: %S is not allowed in a numeric option" form))))
+
+(defun org-babel-widgets--option-number (plist key default)
+  "Return the numeric value of KEY in PLIST, evaluated safely, or DEFAULT."
+  (if (plist-member plist key)
+      (org-babel-widgets--eval-number (plist-get plist key))
+    default))
+
 (defun org-babel-widgets--parse-line (name type rest)
   "Return a `org-babel-widgets-widget' for NAME, TYPE and the option text REST.
 Signal `user-error' with a \"Widget error: \" message on invalid input."
@@ -310,22 +346,19 @@ Signal `user-error' with a \"Widget error: \" message on invalid input."
            (value (plist-get plist :value)))
       (pcase sym
         ('slider
-         (let* ((mn (if (plist-member plist :min) (plist-get plist :min) 0))
-               (mx (if (plist-member plist :max) (plist-get plist :max) 1))
-               (st (cond ((plist-member plist :step) (plist-get plist :step))
-                         ((plist-get plist :continuous)
-                          (let ((lo (if (numberp mn) mn 0)) (hi (if (numberp mx) mx 1)))
-                            (/ (- hi lo) 100.0)))
-                         (t 0.01))))
-           (unless (and (numberp mn) (numberp mx) (numberp st))
-             (user-error "Widget error: :min, :max and :step must be numbers"))
+         (let* ((mn (org-babel-widgets--option-number plist :min 0))
+                (mx (org-babel-widgets--option-number plist :max 1))
+                (st (cond ((plist-member plist :step)
+                           (org-babel-widgets--option-number plist :step nil))
+                          ((plist-get plist :continuous) (/ (- mx mn) 100.0))
+                          (t 0.01)))
+                (initial (and (plist-get plist :value)
+                              (org-babel-widgets--option-number plist :value nil))))
            (unless (< mn mx) (user-error "Widget error: :min must be less than :max"))
            (unless (> st 0) (user-error "Widget error: :step must be positive"))
-           (unless (or (null value) (numberp value))
-             (user-error "Widget error: :value must be a number"))
            (setf (org-babel-widgets-widget-min w) mn (org-babel-widgets-widget-max w) mx (org-babel-widgets-widget-step w) st
                  (org-babel-widgets-widget-continuous w) (and (plist-get plist :continuous) t))
-           (setf (org-babel-widgets-widget-value w) (org-babel-widgets--snap w (or value mn)))))
+           (setf (org-babel-widgets-widget-value w) (org-babel-widgets--snap w (or initial mn)))))
         ('toggle (setf (org-babel-widgets-widget-value w) (and value t)))
         ('button (setf (org-babel-widgets-widget-value w) 0))
         ('choice

@@ -77,6 +77,19 @@ With `:continuous t` a slider does not snap to a step; its resolution is the
 slider width in pixels and the displayed value has 4 significant digits. `:step`
 then only sets how far the arrow keys move (default: 1/100 of the range).
 
+Slider `:min`, `:max`, `:step` and `:value` accept arithmetic expressions:
+
+```org
+#+WIDGET: theta slider :min 0 :max (* 2 pi) :continuous t :label "theta"
+```
+
+They are not passed to `eval`: opening an Org file must never run arbitrary
+code. Only numbers, the constants `pi`, `float-pi`, `e` and `float-e`, and these
+functions (nested as needed) are allowed: `+ - * / % mod 1+ 1- abs min max expt
+sqrt exp log sin cos tan asin acos atan float round floor ceiling truncate`.
+Anything else, a division by zero or a non-finite result is reported as a
+widget error. Values are computed once, when the line is read.
+
 Invalid declarations show the error in red in place of the widget, for example
 `Widget error: :min must be less than :max`. Edited `#+WIDGET:` lines are re-read after
 0.3 s of idle time.

@@ -328,4 +328,38 @@
         (should (equal "ok" (org-babel-widgets--read-name)))
         (should-not inputs)))))
 
+
+;;;; Numeric expressions in options
+
+(defvar org-babel-widgets-test--pwned nil)
+
+(ert-deftest org-babel-widgets-test-slider-options-accept-expressions ()
+  (let ((w (org-babel-widgets--parse-line
+            "a" "slider" ":min (- pi) :max (* 2 float-pi) :continuous t :value (/ pi 2)")))
+    (should (= (- float-pi) (org-babel-widgets-widget-min w)))
+    (should (= (* 2 float-pi) (org-babel-widgets-widget-max w)))
+    (should (< (abs (- (/ float-pi 2) (org-babel-widgets-widget-value w))) 1e-9))
+    (should (= (/ (* 3 float-pi) 100) (org-babel-widgets-widget-step w))))
+  (let ((w (org-babel-widgets--parse-line
+            "b" "slider" ":min 0 :max (expt 2 (+ 1 2)) :step (max 1 (sqrt 4)) :value (sin 0)")))
+    (should (= 8 (org-babel-widgets-widget-max w)))
+    (should (= 2.0 (org-babel-widgets-widget-step w)))
+    (should (= 0 (org-babel-widgets-widget-value w)))))
+
+(ert-deftest org-babel-widgets-test-slider-expressions-never-run-arbitrary-code ()
+  (setq org-babel-widgets-test--pwned nil)
+  (dolist (opts '(":max (progn (setq org-babel-widgets-test--pwned t) 5)"
+                  ":max (setq org-babel-widgets-test--pwned t)"
+                  ":max (+ 1 (setq org-babel-widgets-test--pwned t))"
+                  ":max org-babel-widgets-test--pwned"
+                  ":max (funcall 'setq org-babel-widgets-test--pwned t)"
+                  ":max (/ 1 0)"
+                  ":max (/ 1 0.0)"
+                  ":max (+ 1 \"a\")"
+                  ":min (shell-command-to-string \"id\") :max 5"))
+    (let ((err (should-error (org-babel-widgets--parse-line "x" "slider" opts)
+                             :type 'user-error)))
+      (should (string-prefix-p "Widget error: " (cadr err)))))
+  (should-not org-babel-widgets-test--pwned))
+
 ;;; org-babel-widgets-test.el ends here
